@@ -1,0 +1,43 @@
+{
+  "network": "bscTestnet",
+  "deployer": "0xb1a55710AB91Ff8CA39D457877083E24Aa00D068",
+  "registry": "0x77E7F69663C72eD5531394B619019fF1E171613d",
+  "proceedsWallet": "0xD8720C10593981AE7C31bB34A152b14636cbE533",
+  "share": "0xA437bD2Fb00B2548d0EAEcC0F8E0Bf1511742826",
+  "token": "0xfE36f2770a4f67E85f9469b9158100d5Fa8aeC2b",
+  "redeem": "0x0Db8Bc17377A9f35eB763994236D581133CBCA2C",
+  "shareDeploymentBlock": 144735130,
+  "transactions": {
+    "mockRegistryDeployment": "0x30172184f2e8d29c8a460c2a56b51fa41970397f72c60887e142afa2556704e1",
+    "shareDeployment": "0x71e5991fc8b2818209ef1de87e190daf99d7c81e04e0ac2dfda16f8c09de895c",
+    "tokenDeployment": "0xd4d3d6646db66bc003d66e466412672d64e249a77eb4a93cfb2c9cd309ffb4ec",
+    "redeemDeployment": "0xdb49258d839fbb866ad1b86af90be88ed6c10d9696a9e369532ea204f2384422",
+    "shareRedeemLink": "0xd396ccabc11a350c6a6a514a7a00c3ed82c16a3edf4657a174c4d0f1807a7a8c",
+    "tokenRedeemLink": "0x699449d0744302a8323e0a5d9ff4fcb5644cc91b9309d0ae28f52a50311ec41a"
+  },
+  "e2eAgentHandle": "sg-e2e-rotate-mwvqaivw",
+  "ownerRotation": {
+    "transactions": [
+      {
+        "action": "mint replacement test Agent ID",
+        "hash": "0xe3ed62e590bae40e38c2cedd0de02789f8153239f94159c6550a4a018cb44021",
+        "block": 144738288
+      },
+      {
+        "action": "transfer share ownership",
+        "hash": "0xfdf83172518bb517dac7875184007f1be3a80102a48e7de2207c95838ad7499f",
+        "block": 144738302
+      },
+      {
+        "action": "transfer token ownership",
+        "hash": "0x4fbc216df802d5bffd8ba7ca04fa441f7db7bd12dc42cf69b90f93d8419277cb",
+        "block": 144738317
+      },
+      {
+        "action": "transfer redeem ownership",
+        "hash": "0xf9b6fb1fe6d912675f0fde6c64fbbb469100710e053df61bfe2c1bd098aa84f9",
+        "block": 144738331
+      }
+    ]
+  }
+}

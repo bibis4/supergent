@@ -1,0 +1,17 @@
+{
+  "url": "http://localhost:4179/",
+  "verificationMethod": "Real Chromium page rendering, reading DOM after live RPC counters loaded; no wallet injection or mocked RPC",
+  "chainId": 97,
+  "status": "PASS",
+  "metrics": {
+    "uniqueAgentIds": "2 / 1,000",
+    "sharesMinted": "11 / 20,160",
+    "tokenRedeemed": "1,000"
+  },
+  "leaderboardShareCounts": [10, 1],
+  "recentMintTokenIds": [11, 10, 9, 8, 7, 6],
+  "toastErrors": [],
+  "consoleErrors": [],
+  "walletSpecificUiTested": false,
+  "note": "Global counters, leaderboard and activity match deployed contracts. Browser-wallet signing was not used; contract writes were sent by the local testnet signer."
+}

@@ -1,0 +1,187 @@
+{
+  "network": "bscTestnet",
+  "chainId": 97,
+  "deployer": "0xb1a55710AB91Ff8CA39D457877083E24Aa00D068",
+  "share": "0xA437bD2Fb00B2548d0EAEcC0F8E0Bf1511742826",
+  "updatedAt": "2026-11-25T12:40:25.061Z",
+  "scenarios": [
+    {
+      "scenario": "Reuse test Agent ID from interrupted E2E attempt",
+      "status": "PASS",
+      "handle": "sg-e2e-rotate-mwvqaivw"
+    },
+    {
+      "scenario": "First share free mint (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0x19d0e449ccdb581f7843b2bcb31180470f5483af95131cf9606945bba36db6c4",
+      "blockNumber": 144787617
+    },
+    {
+      "scenario": "Paid share #3 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0xf16c9260793687522d5138167f762d539da2f52b08c91ec3299bca758d944e06",
+      "blockNumber": 144787621,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Paid share #4 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0x80667dfb5abe432ade8cbfafb8f1edee904b472aa14ee89b8ec59f5708f21075",
+      "blockNumber": 144787625,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Paid share #5 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0x150a5fdfc6c7780f112dce86cd1ead25d7517ce33abb93f592f39b631e057e38",
+      "blockNumber": 144787629,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Paid share #6 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0x795cc50dc64d16eaa7759487e9ba000a66cbeae64feeb9a55d3d04f823636a41",
+      "blockNumber": 144787633,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Paid share #7 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0xc47306b233eacc6045e9b793575fd0b9862ecee55e00174a8e2cacb5b29a9e90",
+      "blockNumber": 144787638,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Paid share #8 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0x02c8229dab5d9c936bc0b906b77513dc4e99d45b1045bff0215c59d99fed6c70",
+      "blockNumber": 144787643,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Paid share #9 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0xb4d23d192d8450cd61318e392d1966ce15e5d6ce2262c998c9d1f243f702542d",
+      "blockNumber": 144787647,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Paid share #10 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0xe40e9bf7f886f82c60706172d4a369447e5034a7e95def406f4150978fed20cf",
+      "blockNumber": 144787653,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Share 10 paid mint",
+      "status": "PASS",
+      "txHash": "0xf6e5a7f6384c97a11b487540a1043e169404c133bd41518f6c3f471f990b93f6",
+      "blockNumber": 144789498
+    },
+    {
+      "scenario": "11th mint for the same Agent ID reverts",
+      "status": "PASS",
+      "expectedRevert": "AgentShareLimitReached",
+      "method": "eth_call (no transaction broadcast)"
+    },
+    {
+      "scenario": "Wallet without Agent ID cannot mint",
+      "status": "PASS",
+      "expectedRevert": "NoAgentId",
+      "method": "eth_call (no transaction broadcast)"
+    },
+    {
+      "scenario": "Deploy isolated test-only threshold harness",
+      "status": "PASS",
+      "address": "0x36610947e410AaE606dF50d8AdB618Dd692E34B6",
+      "txHash": "0x0308e32f7f9e4756432fa77119d8de03b50437ad5b99088e460da370be0a236b",
+      "blockNumber": 144789504
+    },
+    {
+      "scenario": "Set QA threshold just below 1,000 unique minters",
+      "status": "PASS",
+      "txHash": "0x57f30800b51fa842d5366548e0fe13752bab7cc9a2420c0461063655c2488ea5",
+      "blockNumber": 144789509
+    },
+    {
+      "scenario": "QA threshold price below 1,000",
+      "status": "PASS",
+      "paidSharePriceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Set QA threshold at 1,000 unique minters",
+      "status": "PASS",
+      "txHash": "0x2e7a8d64b4a4ab15d5be9c89574fb3e604b2c810f53f07c12b2b83ab065ac44a",
+      "blockNumber": 144789515
+    },
+    {
+      "scenario": "QA threshold price at 1,000",
+      "status": "PASS",
+      "paidSharePriceWei": "2000000000000000"
+    },
+    {
+      "scenario": "QA paid mint at 1,000 unique minters (0.002 BNB)",
+      "status": "PASS",
+      "txHash": "0x55d4d3f374a92f7cbfcf2683bf11816e6c0a7ac6bf0efae0ef2ea5af57da5e21",
+      "blockNumber": 144789520
+    },
+    {
+      "scenario": "Redeem before open time reverts",
+      "status": "PASS",
+      "expectedRevert": "RedeemNotOpen",
+      "method": "eth_call (no transaction broadcast)"
+    },
+    {
+      "scenario": "Transfer share #2 to test buyer",
+      "status": "PASS",
+      "txHash": "0x31af9b573342a99eb8927448880d2b83cd80ff0cb557041e9b4016c347fe5b2d",
+      "blockNumber": 144789525
+    },
+    {
+      "scenario": "Open testnet redeem window at past timestamp",
+      "status": "PASS",
+      "txHash": "0x9cb24dbe71b456539ec80730f42238b9e6ee01c2ee672abcb5b7b7c77d86bf59",
+      "blockNumber": 144789529
+    },
+    {
+      "scenario": "Paid share #11 (confirmed from interrupted run)",
+      "status": "PASS",
+      "txHash": "0xf6e5a7f6384c97a11b487540a1043e169404c133bd41518f6c3f471f990b93f6",
+      "blockNumber": 144789498,
+      "priceWei": "1000000000000000"
+    },
+    {
+      "scenario": "Buyer who received the NFT cannot redeem",
+      "status": "PASS",
+      "expectedRevert": "NotOriginWallet",
+      "method": "eth_call (no transaction broadcast)"
+    },
+    {
+      "scenario": "Original mint wallet redeems transferred share #2",
+      "status": "PASS",
+      "txHash": "0x6a18ca360a2fded90788b152f67f624ca7f217d4f5c58be8def267f5eaae5c76",
+      "blockNumber": 144789653
+    },
+    {
+      "scenario": "Redeeming the same share twice reverts",
+      "status": "PASS",
+      "expectedRevert": "TokenAlreadyRedeemed",
+      "method": "eth_call (no transaction broadcast)"
+    },
+    {
+      "scenario": "Contract values match E2E expectations (browser verification separate)",
+      "status": "PASS",
+      "values": {
+        "chainId": 97,
+        "agentHandle": "sg-e2e-rotate-mwvqaivw",
+        "uniqueMinterCount": "2",
+        "totalMinted": "11",
+        "agentMinted": "10",
+        "tokenSupply": "1000000000000000000000",
+        "originWalletTokenBalance": "1000000000000000000000",
+        "redeemOpen": true,
+        "redeemOpenTime": "1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+# Supergent — Genesis Share mint guide for AI agents
+
+Supergent is an independent Agent ID-gated Genesis Share experiment. The first share per SPACE ID Agent ID is free (the caller pays network gas); shares 2–10 cost BNB. One share reserves 1,000 $SUPERGENT for redemption by its original mint wallet after redemption is opened. This project is not affiliated with Binance. No token value or return is promised.
+
+## Network and registry
+
+- MVP network: BNB Smart Chain Testnet, chain ID 97.
+- Testnet Agent ID registry: a project-owned `MockAgentID` deployed per testnet release. Read the current address from the project's website/config or deployment record; do not guess it.
+- Mainnet SPACE ID Agent ID registry: `0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F` on BNB Smart Chain, chain ID 56. Mainnet Supergent contracts are not deployed/enabled by this MVP.
+- Published registry interface: `balanceOf(address)`, `handleOf(address)`, `ownerOf(uint256)`, and `ownerOfHandle(string)`.
+- Resolve a wallet: check `balanceOf(wallet) > 0`, read `handleOf(wallet)`, then derive `agentId = uint256(keccak256(bytes(handle)))` and verify `ownerOf(agentId) == wallet`. Handles are canonical lowercase strings as returned by the registry. Do not invent registry methods such as `tokenIdOf`.
+
+## Supergent contract suite
+
+The active testnet deployment addresses are published in the website's contract section and `app/.env.local` for local development. If that section says `Not deployed`, do not send a transaction.
+
+- `SupergentShare`: ERC-721 Genesis Share and Agent ID mint gate.
+- `SupergentRedeem`: redemption controller; initialized with `redeemOpenTime = type(uint256).max`, so it is closed until the owner explicitly sets a date.
+- `SupergentToken`: ERC-20, 18 decimals, hard cap 21,000,000 SUPERGENT.
+- Testnet `MockAgentID`: test-only registry. Its `mintDummy(address,string)` is only for local/testnet QA; it is not the production registry.
+
+## Mint rules
+
+- Call `mint()` on `SupergentShare` from a wallet holding an Agent ID. The call has no function arguments.
+- The first share for an Agent ID costs exactly 0 BNB, plus network gas.
+- Paid shares cost 0.001 BNB when the pre-transaction `uniqueMinterCount()` is less than 1,000; otherwise they cost 0.002 BNB.
+- A new Agent ID's first share remains free even after the early-bird threshold is reached.
+- Maximum 10 shares per Agent ID; max supply is 20,160.
+- Query `agentIdForWallet(address)`, `mintedCount(agentId)`, `priceNextShare(agentId)`, `uniqueMinterCount()`, `totalMinted()`, `MAX_SUPPLY()` and `MAX_PER_AGENT_ID()` before proposing a mint.
+- Set transaction `value` to the exact `priceNextShare(agentId)`. Do not overpay; a paid-call overage is refunded but exact value is easier to preview. The free mint requires zero value.
+- Before execution, show the user the network, target contract, `mint()` call, BNB value, and estimated gas. Execute only after their explicit confirmation. Never request or handle seed phrases/private keys.
+
+## Redeem rules
+
+- Check `isOpen()` and `redeemOpenTime()` on `SupergentRedeem`. The initial state is closed.
+- Each NFT redeems once for 1,000 SUPERGENT.
+- Only the wallet recorded as `originWallet(tokenId)` can redeem. Transfer or sale of the NFT does not transfer its redemption right.
+- Call `redeem(tokenId)` on `SupergentRedeem` after it is open. The NFT remains minted and is marked redeemed; repeat redemption reverts.
+- Total redemption issuance is capped at 20,160,000 SUPERGENT. The 840,000 liquidity allocation can be minted once by the token owner. Combined hard cap: 21,000,000.
+
+## Read functions for status
+
+- `SupergentShare.totalMinted()` / `uniqueMinterCount()`
+- `SupergentShare.mintedCount(agentId)` / `redeemedCount(agentId)` / `redeemableOf(agentId)`
+- `SupergentShare.shareTokenIds(agentId)` then read `ownerOf(tokenId)`, `originWallet(tokenId)`, `originAgentId(tokenId)`, and `redeemed(tokenId)`
+- `SupergentShare.priceNextShare(agentId)`
+- `SupergentRedeem.isOpen()` / `redeemOpenTime()`
+- `SupergentToken.totalSupply()` / `balanceOf(wallet)`
+
+## Contract safety
+
+- The browser app is limited to BNB Testnet. Do not infer a mainnet deployment from the presence of the official registry address.
+- Minting requires no ERC-20 approvals, permit signatures, or token transfers.
+- The site never needs a seed phrase or private key.
+- All blockchain writes are irreversible. Review the wallet's transaction preview before confirming.
+- If the contract address or network is missing/mismatched, stop and ask the project owner rather than guessing.

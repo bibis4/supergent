@@ -1,0 +1,32 @@
+{
+  "name": "supergent",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "npm run compile && npm run build:web",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:mainnet-prep": "hardhat test --config hardhat.mainnet-test.config.ts test/Supergent.test.ts",
+    "test:mainnet-guards": "hardhat test --config hardhat.mainnet-test.config.ts test/MainnetGuards.test.ts",
+    "mainnet:plan": "ts-node --transpile-only scripts/deploy-mainnet.ts --plan",
+    "mainnet:owner-deploy": "ts-node --transpile-only scripts/deploy-mainnet.ts --broadcast",
+    "test:gas": "hardhat test --gas-reporter",
+    "deploy:local": "hardhat run scripts/deploy.ts --network hardhat",
+    "deploy:testnet": "hardhat run scripts/deploy.ts --network bscTestnet",
+    "test:e2e:testnet": "hardhat run scripts/e2e-testnet.ts --network bscTestnet",
+    "build:web": "npm --prefix app run build",
+    "dev": "npm --prefix app run dev",
+    "lint": "npm --prefix app run lint"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@openzeppelin/contracts": "5.3.0",
+    "dotenv": "^16.4.7",
+    "hardhat": "^2.22.18",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "viem": "^2.21.54"
+  }
+}

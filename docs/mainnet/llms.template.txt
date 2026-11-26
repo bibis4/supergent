@@ -1,0 +1,97 @@
+# Supergent — BNB Smart Chain mainnet agent guide (UNPUBLISHED TEMPLATE)
+
+STOP: mainnet contracts have NOT been deployed by this preparation step.
+Do not transact while any NOT_DEPLOYED placeholder remains. This file is not the
+active website guide. Populate from the verified owner deployment record, then
+publish as /llms.txt in checklist Phase 3, not before.
+
+Website: https://supergent.xyz
+Official X: https://x.com/ai_supergent
+Network: BNB Smart Chain mainnet; chainId 56; native gas currency BNB.
+Agent ID registry: 0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F
+SupergentShare: NOT_DEPLOYED_SHARE
+SupergentToken: NOT_DEPLOYED_TOKEN
+SupergentRedeem: NOT_DEPLOYED_REDEEM
+Project owner / proceeds: 0xa1BE4296e6c05E5F6904A565e0a9FdCAB3F8d96e
+
+## Resolve Agent ID
+Read balanceOf(wallet) > 0 and handleOf(wallet) on the official registry.
+Derive uint256(keccak256(bytes(handle))) from the EXACT returned handle and verify
+ownerOf(agentId) == wallet. Do not guess tokenIdOf or call mintDummy on mainnet.
+SupergentShare.agentIdForWallet(wallet) returns (uint256 agentId, string handle).
+
+## Minimal human-readable ABI
+Registry:
+function balanceOf(address) view returns (uint256)
+function handleOf(address) view returns (string)
+function ownerOf(uint256) view returns (address)
+
+Share:
+function agentIdForWallet(address) view returns (uint256 agentId, string handle)
+function mint() payable returns (uint256 tokenId)
+function priceNextShare(uint256) view returns (uint256)
+function mintedCount(uint256) view returns (uint256)
+function uniqueMinterCount() view returns (uint256)
+function totalMinted() view returns (uint256)
+function MAX_SUPPLY() view returns (uint256)
+function MAX_PER_AGENT_ID() view returns (uint256)
+function shareTokenIds(uint256) view returns (uint256[])
+function originWallet(uint256) view returns (address)
+function originAgentId(uint256) view returns (uint256)
+function ownerOf(uint256) view returns (address)
+function redeemed(uint256) view returns (bool)
+function redeemableOf(uint256) view returns (uint256)
+
+Redeem:
+function isOpen() view returns (bool)
+function redeemOpenTime() view returns (uint256)
+function redeem(uint256)
+function redeemMany(uint256[])
+
+Token:
+function balanceOf(address) view returns (uint256)
+function totalSupply() view returns (uint256)
+function cap() view returns (uint256)
+function decimals() view returns (uint8)
+
+## Mint flow for Binance Agentic Wallet
+The wallet does not connect to the browser website in this flow. Use its supported
+contract-call capability. Never request or supply a private key or seed phrase.
+1. Confirm chainId 56 and independently match all contract addresses with the
+   verified mainnet deployment record and BscScan source. Missing address = STOP.
+2. Resolve Agent ID, then read mintedCount(agentId) and totalMinted().
+   Stop at 10 shares for the ID or 20,160 total shares.
+3. Read priceNextShare(agentId) immediately before proposing the call:
+   - First share per Agent ID: exactly zero BNB, plus gas.
+   - Shares 2–10: 0.001 BNB if uniqueMinterCount BEFORE execution is <1,000;
+     otherwise 0.002 BNB. A new ID's first share remains free in both eras.
+4. Simulate mint() with the correct sender and exact value, estimate current gas,
+   and show the target, chain, function, BNB value, and gas to the user. Request
+   explicit authorization. No ERC-20 approval or permit is required.
+5. Execute one mint() on SupergentShare, wait for a successful receipt, and verify
+   ShareMinted and the updated mintedCount. Do not blindly retry a submitted tx.
+   If price changed while pending, reread state and request fresh authorization.
+
+## Redemption
+Launch state: CLOSED (redeemOpenTime = uint256 maximum). No opening date promised.
+After the owner explicitly opens redemption, each unredeemed NFT can mint exactly
+1,000 SUPERGENT (18 decimals) to its ORIGINAL MINT WALLET, not the current holder.
+Read originWallet(tokenId), redeemed(tokenId), isOpen(), and redeemOpenTime()
+before simulating or requesting authorization for redeem(tokenId).
+NFTs remain as collectibles and are marked redeemed; they are not burned.
+Buying or receiving a transferred NFT does NOT grant token redemption rights.
+The original Agent ID wallet can redeem even after transferring its NFT away.
+
+## Supply and permissions
+Token hard cap: 21,000,000. Redemption allocation: 20,160,000 (96%).
+Liquidity allocation: 840,000 (4%), one-time owner mint; not minted by deployment.
+Paid mint BNB stays in Share until owner withdrawal to the configured proceeds
+wallet. Owner can change proceeds wallet, metadata URI and redeem-controller
+links, set redemption timing, and mint the one-time liquidity allocation.
+Verify current permissions on-chain; this is NOT an ownerless protocol.
+
+## Risk disclaimer
+Independent experimental protocol; not affiliated with or endorsed by Binance.
+No financial return, market price, liquidity, or redemption opening date promised.
+Transactions and gas costs are irreversible. Transferred NFTs carry no token
+claim for the recipient. Review contract source and wallet previews yourself.

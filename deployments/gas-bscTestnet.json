@@ -1,0 +1,251 @@
+{
+  "chainId": 97,
+  "uniqueSuccessfulTransactions": 27,
+  "totalRecordedGasTBNB": "0.0070224921",
+  "note": "Only the successful transactions in deployment, rotation and E2E records. Excludes partial initial deployments and old interrupted runs absent from those records. Mint payments are not gas.",
+  "receipts": [
+    {
+      "label": "mockRegistryDeployment",
+      "hash": "0x30172184f2e8d29c8a460c2a56b51fa41970397f72c60887e142afa2556704e1",
+      "blockNumber": 144735126,
+      "status": 1,
+      "gasUsed": "1355781",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.001355781"
+    },
+    {
+      "label": "shareDeployment",
+      "hash": "0x71e5991fc8b2818209ef1de87e190daf99d7c81e04e0ac2dfda16f8c09de895c",
+      "blockNumber": 144735130,
+      "status": 1,
+      "gasUsed": "2108750",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.00210875"
+    },
+    {
+      "label": "tokenDeployment",
+      "hash": "0xd4d3d6646db66bc003d66e466412672d64e249a77eb4a93cfb2c9cd309ffb4ec",
+      "blockNumber": 144735134,
+      "status": 1,
+      "gasUsed": "792451",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000792451"
+    },
+    {
+      "label": "redeemDeployment",
+      "hash": "0xdb49258d839fbb866ad1b86af90be88ed6c10d9696a9e369532ea204f2384422",
+      "blockNumber": 144735137,
+      "status": 1,
+      "gasUsed": "595201",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000595201"
+    },
+    {
+      "label": "shareRedeemLink",
+      "hash": "0xd396ccabc11a350c6a6a514a7a00c3ed82c16a3edf4657a174c4d0f1807a7a8c",
+      "blockNumber": 144735141,
+      "status": 1,
+      "gasUsed": "47280",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.00004728"
+    },
+    {
+      "label": "tokenRedeemLink",
+      "hash": "0x699449d0744302a8323e0a5d9ff4fcb5644cc91b9309d0ae28f52a50311ec41a",
+      "blockNumber": 144735144,
+      "status": 1,
+      "gasUsed": "47352",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000047352"
+    },
+    {
+      "label": "mint replacement test Agent ID",
+      "hash": "0xe3ed62e590bae40e38c2cedd0de02789f8153239f94159c6550a4a018cb44021",
+      "blockNumber": 144738288,
+      "status": 1,
+      "gasUsed": "118077",
+      "gasPriceWei": "100000000",
+      "feeTBNB": "0.0000118077"
+    },
+    {
+      "label": "transfer share ownership",
+      "hash": "0xfdf83172518bb517dac7875184007f1be3a80102a48e7de2207c95838ad7499f",
+      "blockNumber": 144738302,
+      "status": 1,
+      "gasUsed": "28682",
+      "gasPriceWei": "100000000",
+      "feeTBNB": "0.0000028682"
+    },
+    {
+      "label": "transfer token ownership",
+      "hash": "0x4fbc216df802d5bffd8ba7ca04fa441f7db7bd12dc42cf69b90f93d8419277cb",
+      "blockNumber": 144738317,
+      "status": 1,
+      "gasUsed": "28666",
+      "gasPriceWei": "100000000",
+      "feeTBNB": "0.0000028666"
+    },
+    {
+      "label": "transfer redeem ownership",
+      "hash": "0xf9b6fb1fe6d912675f0fde6c64fbbb469100710e053df61bfe2c1bd098aa84f9",
+      "blockNumber": 144738331,
+      "status": 1,
+      "gasUsed": "28584",
+      "gasPriceWei": "100000000",
+      "feeTBNB": "0.0000028584"
+    },
+    {
+      "label": "First share free mint (confirmed from interrupted run)",
+      "hash": "0x19d0e449ccdb581f7843b2bcb31180470f5483af95131cf9606945bba36db6c4",
+      "blockNumber": 144787617,
+      "status": 1,
+      "gasUsed": "213016",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000213016"
+    },
+    {
+      "label": "Paid share #3 (confirmed from interrupted run)",
+      "hash": "0xf16c9260793687522d5138167f762d539da2f52b08c91ec3299bca758d944e06",
+      "blockNumber": 144787621,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000158735"
+    },
+    {
+      "label": "Paid share #4 (confirmed from interrupted run)",
+      "hash": "0x80667dfb5abe432ade8cbfafb8f1edee904b472aa14ee89b8ec59f5708f21075",
+      "blockNumber": 144787625,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000158735"
+    },
+    {
+      "label": "Paid share #5 (confirmed from interrupted run)",
+      "hash": "0x150a5fdfc6c7780f112dce86cd1ead25d7517ce33abb93f592f39b631e057e38",
+      "blockNumber": 144787629,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000158735"
+    },
+    {
+      "label": "Paid share #6 (confirmed from interrupted run)",
+      "hash": "0x795cc50dc64d16eaa7759487e9ba000a66cbeae64feeb9a55d3d04f823636a41",
+      "blockNumber": 144787633,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000158735"
+    },
+    {
+      "label": "Paid share #7 (confirmed from interrupted run)",
+      "hash": "0xc47306b233eacc6045e9b793575fd0b9862ecee55e00174a8e2cacb5b29a9e90",
+      "blockNumber": 144787638,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000158735"
+    },
+    {
+      "label": "Paid share #8 (confirmed from interrupted run)",
+      "hash": "0x02c8229dab5d9c936bc0b906b77513dc4e99d45b1045bff0215c59d99fed6c70",
+      "blockNumber": 144787643,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000158735"
+    },
+    {
+      "label": "Paid share #9 (confirmed from interrupted run)",
+      "hash": "0xb4d23d192d8450cd61318e392d1966ce15e5d6ce2262c998c9d1f243f702542d",
+      "blockNumber": 144787647,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000158735"
+    },
+    {
+      "label": "Paid share #10 (confirmed from interrupted run)",
+      "hash": "0xe40e9bf7f886f82c60706172d4a369447e5034a7e95def406f4150978fed20cf",
+      "blockNumber": 144787653,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "1000000000",
+      "feeTBNB": "0.000158735"
+    },
+    {
+      "label": "Paid share #11 (confirmed from interrupted run)",
+      "hash": "0xf6e5a7f6384c97a11b487540a1043e169404c133bd41518f6c3f471f990b93f6",
+      "blockNumber": 144789498,
+      "status": 1,
+      "gasUsed": "158735",
+      "gasPriceWei": "200000000",
+      "feeTBNB": "0.000031747"
+    },
+    {
+      "label": "Deploy isolated test-only threshold harness",
+      "hash": "0x0308e32f7f9e4756432fa77119d8de03b50437ad5b99088e460da370be0a236b",
+      "blockNumber": 144789504,
+      "status": 1,
+      "gasUsed": "2132801",
+      "gasPriceWei": "200000000",
+      "feeTBNB": "0.0004265602"
+    },
+    {
+      "label": "Set QA threshold just below 1,000 unique minters",
+      "hash": "0x57f30800b51fa842d5366548e0fe13752bab7cc9a2420c0461063655c2488ea5",
+      "blockNumber": 144789509,
+      "status": 1,
+      "gasUsed": "90942",
+      "gasPriceWei": "200000000",
+      "feeTBNB": "0.0000181884"
+    },
+    {
+      "label": "Set QA threshold at 1,000 unique minters",
+      "hash": "0x2e7a8d64b4a4ab15d5be9c89574fb3e604b2c810f53f07c12b2b83ab065ac44a",
+      "blockNumber": 144789515,
+      "status": 1,
+      "gasUsed": "36842",
+      "gasPriceWei": "200000000",
+      "feeTBNB": "0.0000073684"
+    },
+    {
+      "label": "QA paid mint at 1,000 unique minters (0.002 BNB)",
+      "hash": "0x55d4d3f374a92f7cbfcf2683bf11816e6c0a7ac6bf0efae0ef2ea5af57da5e21",
+      "blockNumber": 144789520,
+      "status": 1,
+      "gasUsed": "192946",
+      "gasPriceWei": "200000000",
+      "feeTBNB": "0.0000385892"
+    },
+    {
+      "label": "Transfer share #2 to test buyer",
+      "hash": "0x31af9b573342a99eb8927448880d2b83cd80ff0cb557041e9b4016c347fe5b2d",
+      "blockNumber": 144789525,
+      "status": 1,
+      "gasUsed": "59686",
+      "gasPriceWei": "200000000",
+      "feeTBNB": "0.0000119372"
+    },
+    {
+      "label": "Open testnet redeem window at past timestamp",
+      "hash": "0x9cb24dbe71b456539ec80730f42238b9e6ee01c2ee672abcb5b7b7c77d86bf59",
+      "blockNumber": 144789529,
+      "status": 1,
+      "gasUsed": "29837",
+      "gasPriceWei": "200000000",
+      "feeTBNB": "0.0000059674"
+    },
+    {
+      "label": "Original mint wallet redeems transferred share #2",
+      "hash": "0x6a18ca360a2fded90788b152f67f624ca7f217d4f5c58be8def267f5eaae5c76",
+      "blockNumber": 144789653,
+      "status": 1,
+      "gasUsed": "160112",
+      "gasPriceWei": "200000000",
+      "feeTBNB": "0.0000320224"
+    }
+  ]
+}
