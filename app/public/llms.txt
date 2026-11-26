@@ -1,23 +1,25 @@
-# Supergent — Genesis Share mint guide for AI agents
+# Supergent — LIVE mainnet Genesis Share guide for AI agents
 
 Supergent is an independent Agent ID-gated Genesis Share experiment. The first share per SPACE ID Agent ID is free (the caller pays network gas); shares 2–10 cost BNB. One share reserves 1,000 $SUPERGENT for redemption by its original mint wallet after redemption is opened. This project is not affiliated with Binance. No token value or return is promised.
 
 ## Network and registry
 
-- MVP network: BNB Smart Chain Testnet, chain ID 97.
-- Testnet Agent ID registry: a project-owned `MockAgentID` deployed per testnet release. Read the current address from the project's website/config or deployment record; do not guess it.
-- Mainnet SPACE ID Agent ID registry: `0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F` on BNB Smart Chain, chain ID 56. Mainnet Supergent contracts are not deployed/enabled by this MVP.
+- Status: LIVE. Network: BNB Smart Chain MAINNET, chain ID 56; native currency BNB.
+- Website: https://supergent.xyz ; official X: https://x.com/ai_supergent
+- Public RPC: https://bsc-rpc.publicnode.com ; fallback: https://bsc-dataseed.bnbchain.org
+- Official SPACE ID Agent ID registry: `0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F`.
 - Published registry interface: `balanceOf(address)`, `handleOf(address)`, `ownerOf(uint256)`, and `ownerOfHandle(string)`.
 - Resolve a wallet: check `balanceOf(wallet) > 0`, read `handleOf(wallet)`, then derive `agentId = uint256(keccak256(bytes(handle)))` and verify `ownerOf(agentId) == wallet`. Handles are canonical lowercase strings as returned by the registry. Do not invent registry methods such as `tokenIdOf`.
 
 ## Supergent contract suite
 
-The active testnet deployment addresses are published in the website's contract section and `app/.env.local` for local development. If that section says `Not deployed`, do not send a transaction.
+Verify chain ID 56 and the following addresses against their BscScan verified source before interacting:
 
-- `SupergentShare`: ERC-721 Genesis Share and Agent ID mint gate.
-- `SupergentRedeem`: redemption controller; initialized with `redeemOpenTime = type(uint256).max`, so it is closed until the owner explicitly sets a date.
-- `SupergentToken`: ERC-20, 18 decimals, hard cap 21,000,000 SUPERGENT.
-- Testnet `MockAgentID`: test-only registry. Its `mintDummy(address,string)` is only for local/testnet QA; it is not the production registry.
+- `SupergentShare`: `0xa17f18082ffAE73dd713A9972e3De451889FFBE0`; ERC-721 Genesis Share and Agent ID mint gate.
+- `SupergentToken`: `0xA59aB05EC4d7425Ded49F9bEe2571651E1C067c0`; ERC-20, 18 decimals, hard cap 21,000,000 SUPERGENT.
+- `SupergentRedeem`: `0x1B429cc63082E0063Ce35E5D1c2BC3183B1F12e1`; redemption controller.
+- Share deployment block: 135854340 (verified against its mainnet deployment receipt).
+- Project owner / proceeds wallet: `0xa1BE4296e6c05E5F6904A565e0a9FdCAB3F8d96e`.
 
 ## Mint rules
 
@@ -32,7 +34,9 @@ The active testnet deployment addresses are published in the website's contract 
 
 ## Redeem rules
 
-- Check `isOpen()` and `redeemOpenTime()` on `SupergentRedeem`. The initial state is closed.
+- Owner-selected redemption target: **7 Dec 2026, 12:00 UTC**, Unix timestamp `1796644800`.
+- Redemption is CLOSED before that target. Current release-time read: `redeemOpenTime = uint256.max`, `isOpen() = false`; the owner has not configured the target time on-chain yet. Do not claim it is already scheduled.
+- Always re-read `isOpen()` and `redeemOpenTime()` on `SupergentRedeem`. A countdown is not permission to redeem. If the timestamp remains uint256.max, redemption remains closed even after the target; never submit until the controller actually permits redemption.
 - Each NFT redeems once for 1,000 SUPERGENT.
 - Only the wallet recorded as `originWallet(tokenId)` can redeem. Transfer or sale of the NFT does not transfer its redemption right.
 - Call `redeem(tokenId)` on `SupergentRedeem` after it is open. The NFT remains minted and is marked redeemed; repeat redemption reverts.
@@ -45,12 +49,64 @@ The active testnet deployment addresses are published in the website's contract 
 - `SupergentShare.shareTokenIds(agentId)` then read `ownerOf(tokenId)`, `originWallet(tokenId)`, `originAgentId(tokenId)`, and `redeemed(tokenId)`
 - `SupergentShare.priceNextShare(agentId)`
 - `SupergentRedeem.isOpen()` / `redeemOpenTime()`
-- `SupergentToken.totalSupply()` / `balanceOf(wallet)`
+- `SupergentToken.totalSupply()` / `redeemedSupply()` / `balanceOf(wallet)`; redeemedSupply excludes the separate liquidity allocation.
+
+## Minimal human-readable ABI
+
+Registry:
+function balanceOf(address) view returns (uint256)
+function handleOf(address) view returns (string)
+function ownerOf(uint256) view returns (address)
+
+Share:
+function agentIdForWallet(address) view returns (uint256 agentId, string handle)
+function mint() payable returns (uint256 tokenId)
+function priceNextShare(uint256) view returns (uint256)
+function mintedCount(uint256) view returns (uint256)
+function redeemedCount(uint256) view returns (uint256)
+function uniqueMinterCount() view returns (uint256)
+function totalMinted() view returns (uint256)
+function MAX_SUPPLY() view returns (uint256)
+function MAX_PER_AGENT_ID() view returns (uint256)
+function shareTokenIds(uint256) view returns (uint256[])
+function originWallet(uint256) view returns (address)
+function originAgentId(uint256) view returns (uint256)
+function ownerOf(uint256) view returns (address)
+function redeemed(uint256) view returns (bool)
+function redeemableOf(uint256) view returns (uint256)
+
+Redeem:
+function isOpen() view returns (bool)
+function redeemOpenTime() view returns (uint256)
+function redeem(uint256)
+function redeemMany(uint256[])
+
+Token:
+function balanceOf(address) view returns (uint256)
+function totalSupply() view returns (uint256)
+function redeemedSupply() view returns (uint256)
+function cap() view returns (uint256)
+function decimals() view returns (uint8)
+
+## Agentic Wallet execution flow
+
+Binance Agentic Wallet uses direct contract calls, not browser dApp connection.
+1. Read registry ownership, derive the Agent ID, and verify ownerOf(agentId).
+2. Read mintedCount, totalMinted, uniqueMinterCount and priceNextShare. Stop at 10 shares for the ID or 20,160 total. Never hardcode counters or stale prices.
+3. Simulate mint() with the real sender and exact BNB value. Estimate current gas, show the network, contract, function, price and gas, and obtain explicit user authorization.
+4. Submit one authorized mint() to Share, verify a successful receipt and ShareMinted event, then read updated counters. Never blindly retry a submitted transaction.
+5. For redemption, check the controller isOpen(), the NFT's originWallet and redeemed flag; simulate redeem(tokenId), and request separate user authorization. Receiving a transferred NFT never grants redemption rights.
+
+## Metadata
+
+tokenURI is https://supergent.xyz/nft/<tokenId>.json . Metadata is provided for collection IDs, including future IDs. Metadata availability does not prove minting; verify ownerOf on-chain. Query redeemed(tokenId), never a static JSON attribute, for redemption state.
 
 ## Contract safety
 
-- The browser app is limited to BNB Testnet. Do not infer a mainnet deployment from the presence of the official registry address.
+- The website and contract calls use mainnet chain ID 56. Browser EVM wallets can inspect status and request transactions through their own confirmation UI.
 - Minting requires no ERC-20 approvals, permit signatures, or token transfers.
 - The site never needs a seed phrase or private key.
 - All blockchain writes are irreversible. Review the wallet's transaction preview before confirming.
 - If the contract address or network is missing/mismatched, stop and ask the project owner rather than guessing.
+- Paid mint proceeds remain in Share until owner withdrawal to the configured proceeds wallet. Owner can change proceeds/metadata, change Share and Token redeem-controller links, set redemption timing, and mint the one-time liquidity allocation. This is not an ownerless protocol.
+- Independent experimental protocol, not endorsed by Binance. No profit, financial return, market value, or liquidity is guaranteed. Transferred NFTs carry no token claim for their recipient.

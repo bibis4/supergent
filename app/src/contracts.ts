@@ -3,32 +3,33 @@ import {
   createWalletClient,
   custom,
   defineChain,
+  fallback,
   http,
   parseAbi,
   type Address,
 } from "viem";
+import { mainnetConfig } from "./mainnet-config";
 
-export const bscTestnet = defineChain({
-  id: 97,
-  name: "BNB Smart Chain Testnet",
-  nativeCurrency: { name: "Test BNB", symbol: "tBNB", decimals: 18 },
+export const bscMainnet = defineChain({
+  id: mainnetConfig.chainId,
+  name: "BNB Smart Chain",
+  nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
   rpcUrls: {
     default: {
-      http: [import.meta.env.VITE_BSC_TESTNET_RPC_URL || "https://data-seed-prebsc-1-s1.bnbchain.org:8545"],
+      http: [mainnetConfig.rpcUrl, mainnetConfig.fallbackRpcUrl],
     },
   },
-  blockExplorers: { default: { name: "BscScan Testnet", url: "https://testnet.bscscan.com" } },
-  testnet: true,
+  blockExplorers: { default: { name: "BscScan", url: mainnetConfig.explorerUrl } },
 });
 
 export const addresses = {
-  registry: (import.meta.env.VITE_TESTNET_REGISTRY_ADDRESS || "") as Address,
-  share: (import.meta.env.VITE_TESTNET_SHARE_ADDRESS || "") as Address,
-  token: (import.meta.env.VITE_TESTNET_TOKEN_ADDRESS || "") as Address,
-  redeem: (import.meta.env.VITE_TESTNET_REDEEM_ADDRESS || "") as Address,
+  registry: mainnetConfig.registry as Address,
+  share: mainnetConfig.share as Address,
+  token: mainnetConfig.token as Address,
+  redeem: mainnetConfig.redeem as Address,
 };
 
-export const deploymentBlock = BigInt(import.meta.env.VITE_DEPLOY_BLOCK || "0");
+export const deploymentBlock = mainnetConfig.shareDeploymentBlock;
 export const contractsReady = Boolean(addresses.registry && addresses.share && addresses.token && addresses.redeem);
 
 export const registryAbi = parseAbi([
@@ -66,14 +67,18 @@ export const redeemAbi = parseAbi([
 export const tokenAbi = parseAbi([
   "function balanceOf(address owner) view returns (uint256)",
   "function totalSupply() view returns (uint256)",
+  "function redeemedSupply() view returns (uint256)",
 ]);
 
-export const publicClient = createPublicClient({ chain: bscTestnet, transport: http() });
+export const publicClient = createPublicClient({
+  chain: bscMainnet,
+  transport: fallback([http(mainnetConfig.rpcUrl), http(mainnetConfig.fallbackRpcUrl)]),
+});
 
 export function getWalletClient(provider: { request: (...args: any[]) => Promise<any> }, account: Address) {
   return createWalletClient({
     account,
-    chain: bscTestnet,
+    chain: bscMainnet,
     transport: custom(provider),
   });
 }

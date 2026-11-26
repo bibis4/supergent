@@ -1,0 +1,23 @@
+export const MAX_SUPPLY = 20_160;
+export const STATIC_METADATA_COUNT = 1_000;
+
+// Metadata describes identity/rules, never the changing on-chain redeemed state.
+export function createMetadata(tokenId) {
+  if (!Number.isInteger(tokenId) || tokenId < 1 || tokenId > MAX_SUPPLY) {
+    throw new RangeError("Invalid Genesis Share token ID");
+  }
+  return {
+    name: `Supergent Genesis Share #${tokenId}`,
+    image: "https://supergent.xyz/nft/share.png",
+    description: "An Agent ID-gated ERC-721 Genesis Share on BNB Smart Chain. Maximum collection supply: 20,160; maximum 10 shares per Agent ID. The first share per Agent ID is free plus gas. Each unredeemed share can be redeemed once for 1,000 SUPERGENT by its original mint wallet only, when the on-chain redemption controller allows it. Transferring this NFT does not transfer redemption rights. The NFT is marked redeemed, not burned. Owner-selected redemption target: 7 Dec 2026, 12:00 UTC; verify current scheduling and status on-chain. Independent experimental protocol, not affiliated with Binance. No financial return, market value, or liquidity is guaranteed. Metadata availability is not proof that this token has been minted; verify ownerOf on-chain.",
+    external_url: "https://supergent.xyz/#collection",
+    attributes: [
+      { trait_type: "Collection", value: "Genesis Share" },
+      { trait_type: "Network", value: "BNB Smart Chain" },
+      { trait_type: "Chain ID", value: 56 },
+      { display_type: "number", trait_type: "Share number", value: tokenId },
+      { trait_type: "Redemption identity", value: "Original mint wallet only" },
+      { trait_type: "Transferable", value: "Yes; redemption rights do not transfer" },
+    ],
+  };
+}

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import {
   addresses,
-  bscTestnet,
+  bscMainnet,
   contractsReady,
   deploymentBlock,
   getWalletClient,
@@ -30,6 +30,7 @@ import {
   shareAbi,
   tokenAbi,
 } from "./contracts";
+import { mainnetConfig } from "./mainnet-config";
 import { formatEther, keccak256, toBytes, type Address, type Hash } from "viem";
 
 type ShareRow = {
@@ -80,8 +81,12 @@ function App() {
   const [leaders, setLeaders] = useState<LeaderRow[]>([]);
   const [gasEstimate, setGasEstimate] = useState<bigint | null>(null);
   const [copied, setCopied] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const [chainReadConfirmed, setChainReadConfirmed] = useState(false);
 
-  const isTestnet = chainId === bscTestnet.id;
+  const isMainnet = chainId === bscMainnet.id;
+  const redeemScheduleConfirmed = redeemOpenTime === mainnetConfig.plannedRedeemOpenTime;
+  const secondsToRedeem = Math.max(0, Number(mainnetConfig.plannedRedeemOpenTime) - Math.floor(now / 1000));
   const currentPriceLabel = nextPrice === null
     ? "—"
     : nextPrice === 0n
@@ -106,7 +111,7 @@ function App() {
       if (!accounts[0]) throw new Error("No wallet account was returned.");
       setWallet(accounts[0] as Address);
       setChainId(Number.parseInt(rawChainId, 16));
-      setNotice({ kind: "success", text: "Wallet connected for testnet viewing and manual testing." });
+      setNotice({ kind: "success", text: "Wallet connected. Reading BNB Mainnet status; transactions require your wallet approval." });
     } catch (error) {
       setError(error);
     } finally {
@@ -114,11 +119,11 @@ function App() {
     }
   }, []);
 
-  const switchToTestnet = useCallback(async () => {
+  const switchToMainnet = useCallback(async () => {
     const provider = window.ethereum;
     if (!provider) return;
     try {
-      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x61" }] });
+      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x38" }] });
     } catch (error) {
       const code = typeof error === "object" && error && "code" in error ? (error as { code: number }).code : 0;
       if (code !== 4902) {
@@ -128,11 +133,11 @@ function App() {
       await provider.request({
         method: "wallet_addEthereumChain",
         params: [{
-          chainId: "0x61",
-          chainName: "BNB Smart Chain Testnet",
-          nativeCurrency: { name: "Test BNB", symbol: "tBNB", decimals: 18 },
-          rpcUrls: [bscTestnet.rpcUrls.default.http[0]],
-          blockExplorerUrls: ["https://testnet.bscscan.com"],
+          chainId: "0x38",
+          chainName: "BNB Smart Chain",
+          nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+          rpcUrls: [...bscMainnet.rpcUrls.default.http],
+          blockExplorerUrls: [mainnetConfig.explorerUrl],
         }],
       });
     }
@@ -142,10 +147,11 @@ function App() {
     if (!contractsReady) return;
     setRefreshing(true);
     try {
+      if (await publicClient.getChainId() !== bscMainnet.id) throw new Error("RPC network mismatch: expected BNB Mainnet (56).");
       const [count, unique, supply, redeemTimestamp, isOpen] = await Promise.all([
         publicClient.readContract({ address: addresses.share, abi: shareAbi, functionName: "totalMinted" }),
         publicClient.readContract({ address: addresses.share, abi: shareAbi, functionName: "uniqueMinterCount" }),
-        publicClient.readContract({ address: addresses.token, abi: tokenAbi, functionName: "totalSupply" }),
+        publicClient.readContract({ address: addresses.token, abi: tokenAbi, functionName: "redeemedSupply" }),
         publicClient.readContract({ address: addresses.redeem, abi: redeemAbi, functionName: "redeemOpenTime" }),
         publicClient.readContract({ address: addresses.redeem, abi: redeemAbi, functionName: "isOpen" }),
       ]);
@@ -154,6 +160,7 @@ function App() {
       setTokenSupply(supply);
       setRedeemOpenTime(redeemTimestamp);
       setRedeemOpen(isOpen);
+      setChainReadConfirmed(true);
 
       if (address) {
         const [balance, handle] = await Promise.all([
@@ -162,6 +169,8 @@ function App() {
         ]);
         if (balance > 0n && handle) {
           const id = BigInt(keccak256(toBytes(handle)));
+          const registryOwner = await publicClient.readContract({ address: addresses.registry, abi: registryAbi, functionName: "ownerOf", args: [id] });
+          if (registryOwner.toLowerCase() !== address.toLowerCase()) throw new Error("Registry ownership does not match this Agent ID wallet.");
           setAgentId(id);
           setAgentHandle(handle);
           const [walletMinted, price, walletRedeemed, tokenIds] = await Promise.all([
@@ -212,9 +221,9 @@ function App() {
         ? deploymentBlock
         : latestBlock > 2_000n ? latestBlock - 2_000n : 0n;
       const rows: ActivityRow[] = [];
-      // Public BNB Testnet RPCs cap the block range of eth_getLogs.
-      for (let fromBlock = startBlock; fromBlock <= latestBlock; fromBlock += 40_000n) {
-        const end = fromBlock + 39_999n;
+      // Scan from the verified deployment receipt, in public-RPC-friendly chunks.
+      for (let fromBlock = startBlock; fromBlock <= latestBlock; fromBlock += 5_000n) {
+        const end = fromBlock + 4_999n;
         const logs = await publicClient.getContractEvents({
           address: addresses.share,
           abi: shareAbi,
@@ -263,28 +272,37 @@ function App() {
 
   useEffect(() => {
     void refresh();
+    const timer = window.setInterval(() => void refresh(), 60_000);
+    return () => window.clearInterval(timer);
   }, [refresh]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const mintShare = async () => {
     if (!wallet || !window.ethereum || !contractsReady || !agentId) return;
     setBusy(true);
     try {
-      if (!isTestnet) {
-        await switchToTestnet();
-        throw new Error("Switch to BNB Testnet, then review and submit the mint again.");
+      if (!isMainnet) {
+        await switchToMainnet();
+        throw new Error("Switch to BNB Mainnet, then review and submit the mint again.");
       }
       const walletClient = await getWalletClient(window.ethereum, wallet);
-      const txHash = await walletClient.writeContract({
+      const price = await publicClient.readContract({ address: addresses.share, abi: shareAbi, functionName: "priceNextShare", args: [agentId] });
+      const { request } = await publicClient.simulateContract({
         address: addresses.share,
         abi: shareAbi,
         functionName: "mint",
-        value: nextPrice ?? 0n,
+        value: price,
         account: wallet,
-        chain: bscTestnet,
       });
+      const txHash = await walletClient.writeContract(request);
       setNotice({ kind: "info", text: `Transaction sent: ${truncate(txHash, 10, 8)}` });
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
-      setNotice({ kind: "success", text: "Genesis Share minted on testnet." });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== "success") throw new Error("Mint transaction reverted. Check BscScan before retrying.");
+      setNotice({ kind: "success", text: "Genesis Share minted on BNB Mainnet." });
       await refresh(wallet);
     } catch (error) {
       setError(error);
@@ -297,20 +315,22 @@ function App() {
     if (!wallet || !window.ethereum || !contractsReady) return;
     setBusy(true);
     try {
-      if (!isTestnet) {
-        await switchToTestnet();
-        throw new Error("Switch to BNB Testnet, then review and submit the redeem again.");
+      if (!isMainnet) {
+        await switchToMainnet();
+        throw new Error("Switch to BNB Mainnet, then review and submit the redeem again.");
       }
+      if (!await publicClient.readContract({ address: addresses.redeem, abi: redeemAbi, functionName: "isOpen" })) throw new Error("Redemption is still closed on-chain.");
       const walletClient = await getWalletClient(window.ethereum, wallet);
-      const txHash = await walletClient.writeContract({
+      const { request } = await publicClient.simulateContract({
         address: addresses.redeem,
         abi: redeemAbi,
         functionName: "redeem",
         args: [tokenId],
         account: wallet,
-        chain: bscTestnet,
       });
-      await publicClient.waitForTransactionReceipt({ hash: txHash });
+      const txHash = await walletClient.writeContract(request);
+      const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+      if (receipt.status !== "success") throw new Error("Redeem transaction reverted. Check BscScan before retrying.");
       setNotice({ kind: "success", text: `Share #${tokenId} redeemed for 1,000 $SUPERGENT.` });
       await refresh(wallet);
     } catch (error) {
@@ -349,7 +369,7 @@ function App() {
           <a href="#faq" onClick={closeMenu}>FAQ</a>
         </nav>
         <div className="header-actions">
-          <div className="network-pill"><span className="live-dot" /> TESTNET</div>
+          <div className="network-pill"><span className="live-dot" /> MAINNET</div>
           <button className="connect-button" onClick={wallet ? () => void refresh(wallet) : connectWallet} disabled={busy}>
             {busy ? <LoaderCircle className="spin" size={16} /> : <Wallet size={16} />}
             {wallet ? truncate(wallet) : "Connect wallet"}
@@ -360,7 +380,7 @@ function App() {
       <main id="top">
         <section className="hero section-wrap">
           <div className="hero-copy">
-            <div className="eyebrow"><span className="eyebrow-line" /> AGENT-NATIVE ON BNB CHAIN <span className="eyebrow-tag">TESTNET</span></div>
+            <div className="eyebrow"><span className="eyebrow-line" /> AGENT-NATIVE ON BNB CHAIN <span className="eyebrow-tag">LIVE</span></div>
             <h1>One Agent ID.<br /><span>One Genesis Share.</span></h1>
             <p className="hero-subtitle">A permanent mark for the autonomous web. Claim your first share for gas only, then shape the network one mint at a time.</p>
             <div className="hero-points">
@@ -383,7 +403,7 @@ function App() {
               <div className="share-figure"><div className="figure-core"><Fingerprint size={70} strokeWidth={0.7} /></div><span className="figure-ring ring-one" /><span className="figure-ring ring-two" /><span className="figure-spark spark-one" /><span className="figure-spark spark-two" /></div>
               <div className="share-card-bottom"><div><span className="micro-label">COLLECTION</span><strong>Genesis Share</strong></div><div className="share-chip">AGENT ID<br /><b>VERIFIED</b></div></div>
             </div>
-            <div className="art-coordinate coord-a">BNB / 97</div>
+            <div className="art-coordinate coord-a">BNB / 56</div>
             <div className="art-coordinate coord-b">01 — 10</div>
             <div className="art-caption"><span className="caption-dot" /> A NEW CLASS OF OWNERSHIP</div>
           </div>
@@ -394,14 +414,14 @@ function App() {
           <div className="metric-intro"><span className="tiny-kicker">THE GENESIS RUN</span><strong>Small supply.<br />Built for agents.</strong></div>
           <Metric label="UNIQUE AGENT IDS" value={uniqueMinters === null ? "—" : `${formatInt(uniqueMinters)} / 1,000`} detail="early bird threshold" />
           <Metric label="SHARES MINTED" value={totalMinted === null ? "—" : `${formatInt(totalMinted)} / 20,160`} detail="genesis supply" />
-          <Metric label="TOKEN REDEEMED" value={tokenSupply === null ? "—" : `${Number(formatEther(tokenSupply)).toLocaleString("en-US", { maximumFractionDigits: 0 })}`} detail="of 21,000,000 cap" />
-          <div className="metric-status"><span className="status-icon"><Activity size={16} /></span><span><b>Network status</b><small>{contractsReady ? "Reading BNB Testnet" : "Awaiting testnet deployment"}</small></span><span className="status-pulse" /></div>
+          <Metric label="TOKEN REDEEMED" value={tokenSupply === null ? "—" : `${Number(formatEther(tokenSupply)).toLocaleString("en-US", { maximumFractionDigits: 0 })}`} detail="of 20,160,000 redeem allocation" />
+          <div className="metric-status"><span className="status-icon"><Activity size={16} /></span><span><b>Network status</b><small>{chainReadConfirmed ? "Reading BNB Mainnet" : "Connecting to BNB Mainnet"}</small></span><span className="status-pulse" /></div>
         </section>
 
         <section id="mint" className="mint-section section-wrap">
           <div className="section-heading">
             <div><div className="eyebrow"><span className="eyebrow-line" /> THE MINT SEQUENCE</div><h2>Earn your place<br /><em>in the genesis.</em></h2></div>
-            <p>Connect an EVM wallet to inspect a testnet Agent ID and preview your next share. Mainnet minting is not enabled.</p>
+            <p>Live on BNB Mainnet. Connect an EVM wallet to inspect your Agent ID, or use the agent guide for direct contract calls from Binance Agentic Wallet.</p>
           </div>
           <div className="mint-layout">
             <div className="mint-panel panel">
@@ -411,14 +431,14 @@ function App() {
               {!contractsReady ? (
                 <div className="deployment-state">
                   <div className="empty-orb"><LockKeyhole size={20} /></div>
-                  <div><strong>Testnet contracts not configured</strong><p>Deploy the testnet contracts and add their addresses to <code>app/.env.local</code> to enable live reads and manual minting.</p></div>
+                  <div><strong>Mainnet configuration unavailable</strong><p>Verify the published contract configuration before interacting.</p></div>
                 </div>
               ) : !wallet ? (
-                <div className="connect-state"><div className="empty-orb"><Wallet size={19} /></div><strong>Connect to verify your Agent ID</strong><p>Wallet connection is for testnet status and manual testing only. Agentic Wallet agents call the contract directly.</p><button className="button-primary wide" onClick={connectWallet} disabled={busy}>Connect EVM wallet <ArrowUpRight size={16} /></button></div>
-              ) : !isTestnet ? (
-                <div className="connect-state"><div className="empty-orb"><ShieldCheck size={19} /></div><strong>Switch to BNB Testnet</strong><p>This MVP intentionally limits browser transactions to testnet. No mainnet mint is enabled.</p><button className="button-primary wide" onClick={() => void switchToTestnet()}>Switch network <ArrowUpRight size={16} /></button></div>
+                <div className="connect-state"><div className="empty-orb"><Wallet size={19} /></div><strong>Connect to verify your Agent ID</strong><p>Inspect your mainnet status with an EVM wallet. Agentic Wallet agents call the contract directly using /llms.txt.</p><button className="button-primary wide" onClick={connectWallet} disabled={busy}>Connect EVM wallet <ArrowUpRight size={16} /></button></div>
+              ) : !isMainnet ? (
+                <div className="connect-state"><div className="empty-orb"><ShieldCheck size={19} /></div><strong>Switch to BNB Mainnet</strong><p>Genesis Shares use BNB Smart Chain, chain ID 56. Review every transaction in your wallet.</p><button className="button-primary wide" onClick={() => void switchToMainnet()}>Switch network <ArrowUpRight size={16} /></button></div>
               ) : agentId === null ? (
-                <div className="connect-state"><div className="empty-orb"><Fingerprint size={20} /></div><strong>No Agent ID found</strong><p>This address does not currently hold an Agent ID in the configured registry. Try a testnet mock ID holder.</p><button className="button-outline wide" onClick={() => void refresh(wallet)} disabled={refreshing}>{refreshing ? <LoaderCircle className="spin" size={16} /> : <Activity size={16} />} Recheck address</button></div>
+                <div className="connect-state"><div className="empty-orb"><Fingerprint size={20} /></div><strong>No Agent ID found</strong><p>This address does not currently hold an Agent ID in the official SPACE ID registry on BNB Mainnet.</p><button className="button-outline wide" onClick={() => void refresh(wallet)} disabled={refreshing}>{refreshing ? <LoaderCircle className="spin" size={16} /> : <Activity size={16} />} Recheck address</button></div>
               ) : (
                 <>
                   <div className="identity-row"><div className="agent-avatar"><Fingerprint size={20} /></div><div className="identity-info"><span>VERIFIED AGENT ID</span><strong>{agentHandle}.ai</strong></div><span className="verified-badge"><Check size={13} /> VERIFIED</span></div>
@@ -434,17 +454,24 @@ function App() {
                     {(minted ?? 0n) === 0n ? "Claim your free share" : `Mint next share · ${currentPriceLabel}`}
                     <ArrowUpRight size={16} />
                   </button>
-                  <p className="gas-note"><ShieldCheck size={13} /> You pay only the displayed share price plus testnet gas. Check the wallet preview before approving.</p>
+                  <p className="gas-note"><ShieldCheck size={13} /> You pay the share price plus BNB network gas. Check the wallet preview before approving.</p>
                 </>
               )}
-              <div className="console-footer"><span>NETWORK <b>BNB CHAIN TESTNET</b></span><span>CHAIN ID <b>97</b></span><span>STATUS <b>{contractsReady ? "SYNCED" : "NOT DEPLOYED"}</b></span></div>
+              <div className="console-footer"><span>NETWORK <b>BNB MAINNET</b></span><span>CHAIN ID <b>56</b></span><span>STATUS <b>{chainReadConfirmed ? "LIVE" : "CONNECTING"}</b></span></div>
             </div>
             <div className="mint-side">
               <div className="rule-card"><span className="rule-index">01</span><div><h3>First share, free.</h3><p>Your genesis share costs 0 BNB. You only cover the network gas needed to write the mint to chain.</p></div><span className="rule-mark">01</span></div>
               <div className="rule-card"><span className="rule-index">02</span><div><h3>Up to ten per ID.</h3><p>Early participants pay 0.001 BNB for shares 2–10. After 1,000 unique Agent IDs, the price becomes 0.002 BNB.</p></div><span className="rule-mark">10</span></div>
-              <div className="rule-card"><span className="rule-index">03</span><div><h3>Redeem, when open.</h3><p>Each share reserves 1,000 $SUPERGENT. Redeem opens on a date announced by the owner; until then it stays locked.</p></div><span className="rule-mark"><LockKeyhole size={17} /></span></div>
+              <div className="rule-card"><span className="rule-index">03</span><div><h3>Redeem, when open.</h3><p>Each share can redeem 1,000 $SUPERGENT. Target: {mainnetConfig.redeemDateLabel}. Access always follows the on-chain controller.</p></div><span className="rule-mark"><LockKeyhole size={17} /></span></div>
               <div className="agent-callout"><div className="callout-icon"><Fingerprint size={19} /></div><div><b>Building with an agent?</b><p>Read the plain-text integration guide and call the contract directly from your Agentic Wallet.</p><a href="/llms.txt" target="_blank" rel="noreferrer">Open agent guide <ArrowUpRight size={13} /></a></div></div>
             </div>
+          </div>
+        </section>
+
+        <section className="redeem-schedule section-wrap" aria-label="Redemption schedule">
+          <div className="panel redeem-schedule-panel">
+            <div><div className="eyebrow"><span className="eyebrow-line" /> REDEMPTION SCHEDULE</div><h2>{mainnetConfig.redeemDateLabel}</h2><p>Only the original mint wallet can redeem.</p></div>
+            <div className="redeem-countdown"><span className="micro-label">{redeemScheduleConfirmed ? "COUNTDOWN TO ON-CHAIN SCHEDULE" : "COUNTDOWN TO OWNER'S TARGET"}</span><strong aria-label="Time until planned redemption">{formatCountdown(secondsToRedeem)}</strong><p>{redeemOpen ? "On-chain redemption is OPEN." : redeemOpenTime === null ? "Checking on-chain redemption status…" : redeemScheduleConfirmed ? "On-chain redemption is CLOSED until the scheduled time." : "On-chain redemption is CLOSED. Target date is not configured on-chain yet."}</p><small>The countdown does not unlock redemption; contract status is authoritative.</small></div>
           </div>
         </section>
 
@@ -465,7 +492,7 @@ function App() {
                 <span>{share.redeemed ? <span className="muted-action">Complete</span> : isOriginWallet && redeemOpen ? <button className="small-action" onClick={() => void redeemShare(share.tokenId)} disabled={busy}>Redeem <ArrowUpRight size={12} /></button> : <span className="muted-action">{isOriginWallet ? "Coming soon" : "Origin wallet only"}</span>}</span>
               </div>;
             }) : (
-              <div className="empty-collection"><div className="empty-orb"><Leaf size={18} /></div><strong>{contractsReady && wallet ? "No Genesis Shares yet" : "Your shares will appear here"}</strong><p>{contractsReady && wallet ? "Mint a share to create your first on-chain entry." : "Connect an Agent ID wallet after testnet deployment to view minted shares."}</p></div>
+              <div className="empty-collection"><div className="empty-orb"><Leaf size={18} /></div><strong>{contractsReady && wallet ? "No Genesis Shares yet" : "Your shares will appear here"}</strong><p>{contractsReady && wallet ? "Mint a share to create your first on-chain entry." : "Connect an Agent ID wallet to view its mainnet shares and original mint rights."}</p></div>
             )}
             <div className="collection-foot"><span><span className="live-dot" /> LIVE CONTRACT DATA</span><span>Transferable NFT · redeem rights stay with original wallet</span></div>
           </div>
@@ -490,15 +517,15 @@ function App() {
                 <span className="agent-short">ID-{row.agentId.toString().slice(-5)}</span>
                 <span className="activity-share">#{formatInt(row.tokenId)}</span>
                 <span className={row.price === 0n ? "activity-free" : "activity-price"}>{row.price === 0n ? "FREE" : `${formatEther(row.price)} BNB`}</span>
-                <a className="tx-link" href={`https://testnet.bscscan.com/tx/${row.transactionHash}`} target="_blank" rel="noreferrer">View <ExternalLink size={12} /></a>
+                <a className="tx-link" href={`${mainnetConfig.explorerUrl}/tx/${row.transactionHash}`} target="_blank" rel="noreferrer">View <ExternalLink size={12} /></a>
               </div>) : <div className="activity-empty"><span className="empty-scan"><Activity size={22} /></span><b>No mint events indexed yet</b><small>{contractsReady ? "First transaction will appear here." : "Connect deployed contract addresses to load on-chain events."}</small></div>}
-              <div className="panel-bottom-note"><span>TESTNET EVENT FEED</span><span>READ-ONLY VIEW <ArrowUpRight size={12} /></span></div>
+              <div className="panel-bottom-note"><span>MAINNET EVENT FEED</span><span>READ-ONLY VIEW <ArrowUpRight size={12} /></span></div>
             </div>
           </div>
         </section>
 
         <section className="leader-section section-wrap">
-          <div className="leader-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> AGENT CONTRIBUTION</div><h2>Share the <em>signal.</em></h2></div><span className="leader-note">TOP AGENT IDS / TESTNET</span></div>
+          <div className="leader-heading"><div><div className="eyebrow"><span className="eyebrow-line" /> AGENT CONTRIBUTION</div><h2>Share the <em>signal.</em></h2></div><span className="leader-note">TOP AGENT IDS / MAINNET</span></div>
           <div className="leader-table panel">
             <div className="leader-header"><span>RANK</span><span>AGENT ID</span><span>SHARES MINTED</span><span>NETWORK</span></div>
             {leaders.length ? leaders.map((leader, index) => <div className="leader-row" key={leader.agentId.toString()}><span className="rank-number">{String(index + 1).padStart(2, "0")}</span><span className="leader-agent"><span className="leader-avatar"><Fingerprint size={14} /></span>ID-{leader.agentId.toString().slice(-6)}</span><span className="leader-count">{formatInt(leader.minted)} <small>SHARES</small></span><span className="leader-network"><span className="live-dot" /> ACTIVE</span></div>) : <div className="leader-empty">Leaderboard appears after contract events are available.</div>}
@@ -520,12 +547,12 @@ function App() {
         </section>
 
         <section className="roadmap-section section-wrap">
-          <div className="roadmap-title"><div className="eyebrow"><span className="eyebrow-line" /> FROM TESTNET TO GENESIS</div><h2>Four steps.<br /><em>No shortcuts.</em></h2><p>Each stage is verifiable on-chain. Mainnet and redemption dates will be announced by the project owner.</p></div>
+          <div className="roadmap-title"><div className="eyebrow"><span className="eyebrow-line" /> THE GENESIS JOURNEY</div><h2>Four steps.<br /><em>No shortcuts.</em></h2><p>Genesis mint is live on BNB Mainnet. Redemption target: {mainnetConfig.redeemDateLabel}. On-chain status determines availability.</p></div>
           <div className="roadmap-track">
-            <RoadmapItem number="01" title="Testnet" detail="Mock Agent ID · contract tests · open feedback" state="CURRENT" active />
-            <RoadmapItem number="02" title="Mainnet mint" detail="Verified contracts · Agent ID gate · genesis shares" state="UP NEXT" />
+            <RoadmapItem number="01" title="Protocol testing" detail="Contract scenarios · mint rules · redemption checks" state="COMPLETE" />
+            <RoadmapItem number="02" title="Mainnet mint" detail="Verified contracts · Agent ID gate · genesis shares" state="LIVE" active />
             <RoadmapItem number="03" title="Token launch" detail="$SUPERGENT supply and liquidity allocation" state="PLANNED" />
-            <RoadmapItem number="04" title="Redeem opens" detail="Origin wallets redeem shares for tokens" state="OWNER-SET DATE" />
+            <RoadmapItem number="04" title="Redeem opens" detail={`${mainnetConfig.redeemDateLabel} · subject to on-chain schedule`} state={redeemOpen ? "OPEN" : redeemScheduleConfirmed ? "SCHEDULED" : "OWNER TARGET"} />
           </div>
         </section>
 
@@ -535,28 +562,29 @@ function App() {
             <Faq q="Can I transfer or sell the NFT?" a="Yes. The ERC-721 is transferable, but redemption rights stay with the originating Agent ID wallet. Only the original mint wallet can redeem, even after transferring the NFT away. Buying or receiving a Genesis Share on a secondary market does not grant a claim to $SUPERGENT. The NFT is marked redeemed, not burned." />
             <Faq q="Is the first share really free?" a="The first share for each Agent ID has a mint price of 0 BNB. You still need to pay the BNB network gas fee for the transaction. The mint is limited to one free share per Agent ID." />
             <Faq q="When does early-bird pricing end?" a="Paid shares cost 0.001 BNB while fewer than 1,000 unique Agent IDs have minted. After the counter reaches 1,000, paid shares cost 0.002 BNB. A new Agent ID's first share remains free." />
-            <Faq q="When can I redeem my shares?" a="Redemption is closed until the project owner sets and announces an opening time. Before then, the interface shows Coming soon. No launch or redemption date is promised." />
-            <Faq q="Can Binance Agentic Wallet connect to this website?" a="The Binance Agentic Wallet does not connect to browser dApps in this flow. An AI agent can call the contract directly. Browser wallets are supported for read-only status checks and testnet manual testing." />
+            <Faq q="When can I redeem my shares?" a={`The owner's target is ${mainnetConfig.redeemDateLabel}, timestamp 1796644800. ${redeemOpenTime === null ? "On-chain status is loading." : redeemOpen ? "The controller currently reports redemption open." : redeemScheduleConfirmed ? "The controller is scheduled for that time; redemption is closed before it." : "The controller currently keeps redemption closed and has not been configured for this target date yet."} The countdown alone does not unlock anything. Only the original mint wallet can redeem, subject to the controller's on-chain state.`} />
+            <Faq q="Can Binance Agentic Wallet connect to this website?" a="The Binance Agentic Wallet does not connect to browser dApps in this flow. An AI agent can call the mainnet contract directly using /llms.txt. EVM browser wallets can inspect status and request transactions through their own confirmation screen." />
+            <Faq q="What are the risks?" a="Supergent is an independent experimental protocol, not affiliated with Binance. No profit, financial return, token market value, or liquidity is guaranteed. Gas and transactions are irreversible. Buying a transferred NFT does not grant token redemption rights. The owner can change redemption timing, controller links, metadata and proceeds settings, and mint the one-time liquidity allocation. Review the verified contracts before interacting." />
           </div>
         </section>
 
         <section className="contract-section section-wrap">
           <div className="contract-copy"><div className="eyebrow"><span className="eyebrow-line" /> VERIFY BEFORE YOU INTERACT</div><h2>Open contracts.<br /><em>Clear permissions.</em></h2><p>Supergent never asks for a seed phrase, unlimited approval, or an off-chain signature to mint. Verify addresses on BscScan before any mainnet interaction.</p></div>
-          <div className="contract-card panel"><div className="contract-card-head"><span>NETWORK CONTRACTS</span><span className="network-pill"><span className="live-dot" /> BNB TESTNET</span></div>
-            <ContractAddress label="Agent ID Registry (mock)" address={addresses.registry} copied={copied} onCopy={copyAddress} />
+          <div className="contract-card panel"><div className="contract-card-head"><span>NETWORK CONTRACTS</span><span className="network-pill"><span className="live-dot" /> BNB MAINNET</span></div>
+            <ContractAddress label="Agent ID Registry · SPACE ID" address={addresses.registry} copied={copied} onCopy={copyAddress} />
             <ContractAddress label="Genesis Share · ERC-721" address={addresses.share} copied={copied} onCopy={copyAddress} />
             <ContractAddress label="$SUPERGENT · ERC-20" address={addresses.token} copied={copied} onCopy={copyAddress} />
             <ContractAddress label="Redeem Controller" address={addresses.redeem} copied={copied} onCopy={copyAddress} />
-            <div className="contract-disclaimer"><ShieldCheck size={14} /> Mainnet contracts will be published only after explicit approval and verification.</div>
+            <div className="contract-disclaimer"><ShieldCheck size={14} /> BNB Smart Chain · chain ID 56. Verify each contract on BscScan. No approvals or private keys are needed to mint.</div>
           </div>
         </section>
       </main>
 
       <footer className="footer section-wrap">
         <a className="brand footer-brand" href="#top"><span className="brand-mark"><Leaf size={16} /></span><span>supergent<span className="brand-dot">.</span></span></a>
-        <span className="footer-note">An independent on-chain experiment. Not affiliated with Binance.</span>
-        <div className="footer-links"><a href="/llms.txt">Agent guide <ArrowUpRight size={12} /></a><a href="https://testnet.bscscan.com" target="_blank" rel="noreferrer">BscScan <ExternalLink size={12} /></a><a href="#faq">Disclaimer <CircleHelp size={12} /></a></div>
-        <span className="footer-copy">© 2026 SUPERGENT · TESTNET PREVIEW</span>
+        <span className="footer-note">Independent experiment. Not affiliated with Binance. No returns or liquidity guaranteed.</span>
+        <div className="footer-links"><a href="/llms.txt">Agent guide <ArrowUpRight size={12} /></a><a href={mainnetConfig.explorerUrl} target="_blank" rel="noreferrer">BscScan <ExternalLink size={12} /></a><a href="https://x.com/ai_supergent" target="_blank" rel="noreferrer">Official X <ArrowUpRight size={12} /></a><a href="#faq">Disclaimer <CircleHelp size={12} /></a></div>
+        <span className="footer-copy">© 2026 SUPERGENT · MAINNET LIVE</span>
       </footer>
 
       {notice && <div className={`toast toast-${notice.kind}`} role="status"><span>{notice.kind === "success" ? <Check size={15} /> : notice.kind === "error" ? <CircleHelp size={15} /> : <Activity size={15} />}</span><p>{notice.text}</p><button onClick={() => setNotice(null)} aria-label="Dismiss notice"><X size={15} /></button></div>}
@@ -579,13 +607,27 @@ function Faq({ q, a }: { q: string; a: string }) {
 }
 
 function ContractAddress({ label, address, copied, onCopy }: { label: string; address: string; copied: boolean; onCopy: (address: string) => void }) {
-  return <div className="contract-address"><span>{label}</span><div><code>{address ? truncate(address, 10, 8) : "Not deployed"}</code>{address && <button onClick={() => void onCopy(address)} aria-label={`Copy ${label}`}>{copied ? <Check size={13} /> : <Copy size={13} />}</button>}</div></div>;
+  return <div className="contract-address"><span>{label}</span><div><a href={`${mainnetConfig.explorerUrl}/address/${address}#code`} target="_blank" rel="noreferrer"><code>{address}</code></a><button onClick={() => void onCopy(address)} aria-label={`Copy ${label}`}>{copied ? <Check size={13} /> : <Copy size={13} />}</button></div></div>;
 }
 
 function redeemStatus(isOpen: boolean, timestamp: bigint | null) {
   if (isOpen) return "redeem window open";
   if (timestamp === null || timestamp === ((1n << 256n) - 1n)) return "redeem coming soon";
-  return `opens ${new Date(Number(timestamp) * 1000).toLocaleDateString("en-US")}`;
+  if (timestamp === mainnetConfig.plannedRedeemOpenTime) return `opens ${mainnetConfig.redeemDateLabel}`;
+  const date = new Date(Number(timestamp) * 1000);
+  if (Number.isNaN(date.getTime())) return "redeem closed";
+  const day = date.getUTCDate();
+  const month = date.toLocaleString("en-GB", { month: "short", timeZone: "UTC" });
+  const time = `${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")}`;
+  return `opens ${day} ${month} ${date.getUTCFullYear()}, ${time} UTC`;
+}
+
+function formatCountdown(seconds: number) {
+  if (seconds === 0) return "Target time reached";
+  const days = Math.floor(seconds / 86_400);
+  const hours = Math.floor(seconds % 86_400 / 3_600);
+  const minutes = Math.floor(seconds % 3_600 / 60);
+  return `${days}d ${String(hours).padStart(2, "0")}h ${String(minutes).padStart(2, "0")}m ${String(seconds % 60).padStart(2, "0")}s`;
 }
 
 export default App;
